@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse Data Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+    <div class="container">
+        <h1>Pulse Data Monitoring Dashboard</h1>
+        
+        <!-- Health Status and Pulse Summary Cards -->
+        <div class="cards">
+            <div class="card">
+                <h2>Total Pulse Sum</h2>
+                <p>{{ pulse_sum }}</p>
+            </div>
+            <div class="card">
+                <h2>Pulse Average</h2>
+                <p>{{ '%.2f' % pulse_avg if pulse_avg != 'No Data Available' else 'N/A' }}</p>
+            </div>
+            <div class="card">
+                <h2>Health Status</h2>
+                <p>{{ health_status }}</p>
+            </div>
+        </div>
+
+        <!-- Pulse Data Table -->
+        <h2>Recorded Pulse Data</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Pulse Value</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in stored_data %}
+                    <tr>
+                        <td>{{ entry[0] }}</td>
+                        <td>{{ entry[1] }}</td>
+                        <td>{{ entry[2] }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+
+</body>
+</html>

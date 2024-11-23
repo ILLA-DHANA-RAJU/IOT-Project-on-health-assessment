@@ -1,0 +1,91 @@
+#include <SoftwareSerial.h>
+#include <PulseSensorPlayground.h>
+
+// Pin Definitions
+#define ESP8266_TX 2          // Arduino pin connected to ESP8266 TX
+#define ESP8266_RX 3          // Arduino pin connected to ESP8266 RX
+#define PULSE_SENSOR_PIN A0   // Pulse sensor connected to A0
+#define LED_PIN 13            // Pin connected to LED
+
+// Wi-Fi and ThingSpeak details
+const char* ssid = "AndroidAP";           // Replace with your Wi-Fi SSID
+const char* password = "123456789";   // Replace with your Wi-Fi Password
+const String apiKey = "F2FP8WCLIEDJ902U";      // Replace with your ThingSpeak API key
+const String server = "api.thingspeak.com";
+
+SoftwareSerial esp8266(ESP8266_RX, ESP8266_TX); // Initialize SoftwareSerial for ESP8266
+PulseSensorPlayground pulseSensor;
+
+void setup() {
+  Serial.begin(9600);
+  esp8266.begin(115200);
+  delay(2000);
+  // Initialize LED
+  pinMode(LED_PIN, OUTPUT);
+  
+  // Configure pulse sensor
+  pulseSensor.analogInput(PULSE_SENSOR_PIN);
+  pulseSensor.setThreshold(550);  // Adjust threshold for pulse detection as needed
+  
+  if (pulseSensor.begin()) {
+    Serial.println("Pulse Sensor initialized.");
+  }
+
+  connectWiFi();  // Connect to WiFi
+}
+
+void loop() {
+   int bpm = pulseSensor.getBeatsPerMinute();
+
+   if (pulseSensor.sawStartOfBeat()) {
+      Serial.print("Heart Rate: ");
+      Serial.print(bpm);
+      Serial.println(" BPM");
+
+      // Blink LED with each heartbeat
+      digitalWrite(LED_PIN, HIGH);   // Turn LED on at start of beat
+      delay(50);                     // Short delay for blink effect
+      digitalWrite(LED_PIN, LOW);    // Turn LED off to complete the blink
+
+      // Send data to ThingSpeak
+      sendToThingSpeak(bpm);
+      delay(20000);  // Wait 20 seconds between updates to avoid ThingSpeak's rate limit
+   }
+}
+
+// Function to connect to WiFi
+void connectWiFi() {
+  sendCommand("AT+RST", 2000);         // Reset the ESP8266
+  sendCommand("AT+CWMODE=1", 2000);    // Set WiFi mode to station
+  sendCommand("AT+CWJAP=\"" + String(ssid) + "\",\"" + String(password) + "\"", 5000);
+  Serial.println("Connected to Wi-Fi.");
+}
+
+// Function to send BPM data to ThingSpeak
+void sendToThingSpeak(int bpm) {
+  String cmd = "AT+CIPSTART=\"TCP\",\"" + server + "\",80";  // Start a TCP connection
+  if (sendCommand(cmd, 2000)) {
+    cmd = "GET /update?api_key=" + apiKey + "&field1=" + String(bpm);
+    cmd += " HTTP/1.1\r\nHost: " + server + "\r\nConnection: close\r\n\r\n";
+    sendCommand("AT+CIPSEND=" + String(cmd.length() + 4), 2000);
+    esp8266.print(cmd); // Send the HTTP GET request
+    Serial.println("Data sent to ThingSpeak: BPM = " + String(bpm));
+    delay(2000);
+    sendCommand("AT+CIPCLOSE", 1000);  // Close TCP connection
+  }
+}
+
+// Function to send AT commands to ESP8266
+boolean sendCommand(String command, int timeout) {
+  esp8266.println(command);
+  long int time = millis();
+  while ((time + timeout) > millis()) {
+    while (esp8266.available()) {
+      String response = esp8266.readString();
+      if (response.indexOf("OK") >= 0 || response.indexOf("CONNECTED") >= 0) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
