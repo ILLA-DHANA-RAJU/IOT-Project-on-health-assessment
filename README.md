@@ -57,5 +57,4 @@ This project is open-source and available under the MIT License.
 
 ## 🙌 Connect with Me
 
-📧 Email: dhana.raju.illa@gmail.com
-📱 Number: 6300462192
+### 📧 Email: illadhanaraju@gmail.com
